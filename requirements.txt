@@ -1,0 +1,4 @@
+# Pinned to the pandas 2.x line rather than 3.0.x: dbt-core, SQLAlchemy, and
+# other tools we'll add in later weeks tend to lag behind pandas major
+# version bumps, and 2.3.3 is the most recent stable 2.x release.
+pandas==2.3.3
