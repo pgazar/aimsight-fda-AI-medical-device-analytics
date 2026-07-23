@@ -88,3 +88,58 @@ def standardize_columns(df: pd.DataFrame) -> pd.DataFrame:
 
     logger.info("standardizing %d column names", len(COLUMN_RENAME_MAP))
     return df.rename(columns=COLUMN_RENAME_MAP)
+
+
+def parse_decision_date(df: pd.DataFrame) -> pd.DataFrame:
+    """Parse date_of_final_decision from 'MM/DD/YYYY' strings into real dates.
+
+    Returns a new DataFrame; the one passed in is never modified.
+
+    A missing or unparseable date becomes NaT (pandas' "Not a Time" null)
+    rather than crashing the pipeline — but every occurrence is logged as
+    a WARNING, distinguishing "was already missing" from "failed to parse",
+    so nothing is silently lost. We use an explicit format string rather
+    than letting pandas guess, because an ambiguous date like "01/02/2023"
+    could mean Jan 2 or Feb 1 depending on locale assumptions — being
+    explicit removes that ambiguity entirely.
+
+    Raises:
+        MissingExpectedColumnsError: if standardize_columns() hasn't been
+            run yet (date_of_final_decision doesn't exist).
+    """
+    if "date_of_final_decision" not in df.columns:
+        logger.error("date_of_final_decision column not found")
+        raise MissingExpectedColumnsError(
+            "date_of_final_decision column not found — call "
+            "standardize_columns() before parse_decision_date()."
+        )
+
+    result = df.copy()
+    raw_dates = result["date_of_final_decision"]
+
+    originally_missing = raw_dates.isna() | (raw_dates.astype(str).str.strip() == "")
+    parsed = pd.to_datetime(raw_dates, format="%m/%d/%Y", errors="coerce")
+    newly_invalid = parsed.isna() & ~originally_missing
+
+    if originally_missing.any():
+        logger.warning(
+            "%d rows have a missing date_of_final_decision value",
+            int(originally_missing.sum()),
+        )
+
+    if newly_invalid.any():
+        bad_examples = raw_dates[newly_invalid].head(5).tolist()
+        logger.warning(
+            "%d rows have a date_of_final_decision value that does not "
+            "match MM/DD/YYYY (examples: %s)",
+            int(newly_invalid.sum()),
+            bad_examples,
+        )
+
+    result["date_of_final_decision"] = parsed
+    logger.info(
+        "parsed date_of_final_decision for %d rows (%d could not be parsed)",
+        len(result),
+        int(parsed.isna().sum()),
+    )
+    return result

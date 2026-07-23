@@ -96,3 +96,55 @@ def test_standardize_columns_raises_when_a_column_is_missing():
 
     with pytest.raises(MissingExpectedColumnsError, match="Company"):
         standardize_columns(raw_df)
+
+
+# --- parse_decision_date -------------------------------------------------
+
+from aimsight.transform.clean_ai_devices import parse_decision_date  # noqa: E402
+import logging  # noqa: E402
+
+
+def test_parse_decision_date_converts_valid_strings_to_datetime():
+    df = pd.DataFrame({"date_of_final_decision": ["01/15/2023", "12/31/2024"]})
+    result = parse_decision_date(df)
+
+    assert pd.api.types.is_datetime64_any_dtype(result["date_of_final_decision"])
+    assert result["date_of_final_decision"].iloc[0] == pd.Timestamp("2023-01-15")
+    assert result["date_of_final_decision"].iloc[1] == pd.Timestamp("2024-12-31")
+
+
+def test_parse_decision_date_does_not_mutate_the_input_dataframe():
+    df = pd.DataFrame({"date_of_final_decision": ["01/15/2023"]})
+    original_dtype = df["date_of_final_decision"].dtype
+
+    parse_decision_date(df)
+
+    assert df["date_of_final_decision"].dtype == original_dtype
+    assert df["date_of_final_decision"].iloc[0] == "01/15/2023"
+
+
+def test_parse_decision_date_sets_missing_dates_to_nat_and_warns(caplog):
+    df = pd.DataFrame({"date_of_final_decision": ["01/15/2023", None, ""]})
+
+    with caplog.at_level(logging.WARNING, logger="aimsight.transform.clean_ai_devices"):
+        result = parse_decision_date(df)
+
+    assert result["date_of_final_decision"].isna().sum() == 2
+    assert "missing date_of_final_decision" in caplog.text
+
+
+def test_parse_decision_date_sets_malformed_dates_to_nat_and_warns(caplog):
+    df = pd.DataFrame({"date_of_final_decision": ["01/15/2023", "not-a-date"]})
+
+    with caplog.at_level(logging.WARNING, logger="aimsight.transform.clean_ai_devices"):
+        result = parse_decision_date(df)
+
+    assert result["date_of_final_decision"].isna().sum() == 1
+    assert "does not match MM/DD/YYYY" in caplog.text
+
+
+def test_parse_decision_date_raises_if_column_missing():
+    df = pd.DataFrame({"some_other_column": ["x"]})
+
+    with pytest.raises(MissingExpectedColumnsError, match="date_of_final_decision"):
+        parse_decision_date(df)
