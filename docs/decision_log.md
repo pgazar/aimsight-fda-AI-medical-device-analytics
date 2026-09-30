@@ -41,3 +41,26 @@ rather than bolted onto the loader in isolation.
 **Consequences:** Until that validation step exists, a row with extra
 trailing fields would load "successfully" with silently misaligned data.
 Documented here so it isn't forgotten before that step is built.
+
+## 2026-09-30 — Snowflake trial provisioned on Azure (West US 2)
+
+**Decision:** The project's Snowflake trial account is hosted on Microsoft
+Azure, region `AZURE_WESTUS2` (West US 2 / Washington), Standard edition.
+
+**Reason:** Matches the project's chosen cloud host (Azure) per
+`PROJECT_SPEC.md` §5, and West US 2 is the Azure region Snowflake supports
+that is geographically closest to the developer's location (San Jose, CA).
+
+**Alternatives considered:** The first signup attempt used an SSO shortcut
+("Continue with Google/Microsoft"), which skipped the cloud/edition/region
+configuration screen entirely and silently provisioned the account on AWS
+(`AWS_US_EAST_2`) instead. That account was abandoned (trial accounts cost
+nothing unless actively used) and a second trial was created using the
+plain email signup form, which surfaced the configuration screen as
+expected.
+
+**Consequences:** Any future Snowflake trial signup for this project should
+use the plain email form, not an SSO button, to guarantee the
+cloud/edition/region screen appears. `SELECT CURRENT_REGION();` is the
+quickest way to confirm which cloud/region an account actually landed on
+after the fact.

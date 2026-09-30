@@ -117,7 +117,7 @@ The step *numbers and philosophy* from the original 8-week plan are preserved. O
 
 | Step (approx.) | Task | Notes |
 |---|---|---|
-| 9 | Snowflake account + schema setup | Replaces "Postgres warehouse setup" 1:1 |
+| 9 | Snowflake account + schema setup | ✅ **Done** 2026-09-30 — Replaces "Postgres warehouse setup" 1:1. Trial account on Azure (`AZURE_WESTUS2`), Standard edition. Created: warehouse `aimsight_wh` (XSMALL, auto-suspend 60s), database `aimsight`, schema `aimsight.raw`, role `aimsight_role`, user `aimsight_dev` — verified end-to-end via `SELECT CURRENT_USER(), CURRENT_ROLE(), CURRENT_WAREHOUSE()...` returning `AIMSIGHT_DEV`, `AIMSIGHT_ROLE`, `AIMSIGHT_WH`. See `docs/decision_log.md` for the AWS-vs-Azure signup detour. |
 | 10 | dbt project init, `profiles.yml` pointed at Snowflake | Same dbt skills as originally planned, new connection |
 | 11 | Azure Blob Storage landing zone | Raw data lands here before Snowflake load |
 | 12 | Airflow DAG wrapping the Step 7-8 functions as tasks | This is where `clean_ai_devices.py` and `parse_decision_date()` get called by a scheduler instead of run standalone |
