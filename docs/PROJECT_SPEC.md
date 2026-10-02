@@ -118,7 +118,7 @@ The step *numbers and philosophy* from the original 8-week plan are preserved. O
 | Step (approx.) | Task | Notes |
 |---|---|---|
 | 9 | Snowflake account + schema setup | ✅ **Done** 2026-09-30 — Replaces "Postgres warehouse setup" 1:1. Trial account on Azure (`AZURE_WESTUS2`), Standard edition. Created: warehouse `aimsight_wh` (XSMALL, auto-suspend 60s), database `aimsight`, schema `aimsight.raw`, role `aimsight_role`, user `aimsight_dev` — verified end-to-end via `SELECT CURRENT_USER(), CURRENT_ROLE(), CURRENT_WAREHOUSE()...` returning `AIMSIGHT_DEV`, `AIMSIGHT_ROLE`, `AIMSIGHT_WH`. See `docs/decision_log.md` for the AWS-vs-Azure signup detour. |
-| 10 | dbt project init, `profiles.yml` pointed at Snowflake | Same dbt skills as originally planned, new connection |
+| 10 | dbt project init, `profiles.yml` pointed at Snowflake | ✅ **Done** 2026-09-30 — `dbt-snowflake` installed; `dbt init aimsight_dbt` created the project; `profiles.yml` lives outside the repo at `~/.dbt/profiles.yml`, password supplied via `SNOWFLAKE_PASSWORD` env var (never hardcoded). `dbt debug` passes all checks. See `docs/decision_log.md` for four compounding connection issues resolved along the way (account locator vs. name, `MUST_CHANGE_PASSWORD` on service accounts, zsh `!` history expansion, login-lockout threshold). |
 | 11 | Azure Blob Storage landing zone | Raw data lands here before Snowflake load |
 | 12 | Airflow DAG wrapping the Step 7-8 functions as tasks | This is where `clean_ai_devices.py` and `parse_decision_date()` get called by a scheduler instead of run standalone |
 | 13 | dbt models: star schema (facts/dimensions per KPI dependency table) | Reference `docs/kpi_dependency_table.md` for sequencing |

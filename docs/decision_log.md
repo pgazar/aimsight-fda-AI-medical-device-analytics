@@ -64,3 +64,57 @@ use the plain email form, not an SSO button, to guarantee the
 cloud/edition/region screen appears. `SELECT CURRENT_REGION();` is the
 quickest way to confirm which cloud/region an account actually landed on
 after the fact.
+
+**Correction (2026-09-30, later same day):** The Admin > Accounts list later
+showed this account's edition as **Enterprise**, not Standard as originally
+logged above. The Standard-edition decision reasoning in §5 of
+`PROJECT_SPEC.md` (lower cost, simpler feature set) still applies as the
+*intended* choice; this note just corrects the factual record of what the
+trial actually provisioned. No functional impact on anything built so far.
+
+## 2026-09-30 — dbt ↔ Snowflake connection: four compounding issues, resolved
+
+**Decision:** `dbt debug` now connects successfully (`Connection test: [OK
+connection ok]`, `All checks passed!`) using `~/.dbt/profiles.yml` with
+account `vycnywb-cu58693`, user `aimsight_dev`, password supplied via the
+`SNOWFLAKE_PASSWORD` environment variable.
+
+**Reason / root causes found:** Getting here required diagnosing four
+separate, stacked issues, each worth remembering on its own:
+
+1. **Account locator vs. account name.** `CURRENT_ACCOUNT()` returns the
+   account *locator* (`RI04802`), not the *account name* (`CU58693`) needed
+   for the preferred `orgname-accountname` identifier format. The correct
+   function is `CURRENT_ACCOUNT_NAME()` — or, more reliably, read the
+   "Account Identifier" value directly from Snowsight's Admin > Accounts
+   page rather than deriving it. Using the locator produced a `404 Not
+   Found` from dbt, since that hostname never existed.
+2. **`MUST_CHANGE_PASSWORD = TRUE` is a human-login feature, not a
+   service-account one.** Setting it on `aimsight_dev` in Step 9 forced a
+   password change on first interactive login, silently invalidating the
+   password dbt's environment variable still held. Service/automation
+   accounts should be created with `MUST_CHANGE_PASSWORD = FALSE`.
+3. **zsh treats `!` as a history-expansion character even inside double
+   quotes**, when typed directly in an interactive shell — a password
+   containing `!` broke an `export`/`echo` command outright
+   (`zsh: event not found: >`). Secrets with shell-special characters
+   should be entered via `read -rs` (a hidden prompt), never embedded
+   directly in a command string.
+4. **Repeated failed attempts (from both `dbt debug` and manual browser
+   logins while debugging) triggered Snowflake's automatic 5-failed-login,
+   15-minute user lockout.** Confirmed via `DESCRIBE USER aimsight_dev`
+   (`MINS_TO_UNLOCK` positive) and cleared via
+   `ALTER USER aimsight_dev SET MINS_TO_UNLOCK = 0;`.
+
+**Alternatives considered:** None — each of the four was a genuine bug to
+fix, not a design choice with alternatives.
+
+**Consequences:** For any future Snowflake service-account setup in this
+project: (a) always copy the account identifier from Snowsight's Admin >
+Accounts page rather than deriving it from `CURRENT_ACCOUNT()`; (b) always
+set `MUST_CHANGE_PASSWORD = FALSE` on service/automation users; (c) always
+enter secrets via a hidden `read -rs` prompt, never typed inline in a shell
+command or pasted from a chat interface (which can also mangle
+URL-shaped text into markdown links); (d) if authentication starts
+failing unexpectedly after several attempts, check for a lockout via
+`DESCRIBE USER` before assuming the credentials themselves are wrong.
