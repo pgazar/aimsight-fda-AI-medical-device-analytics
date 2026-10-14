@@ -118,3 +118,103 @@ command or pasted from a chat interface (which can also mangle
 URL-shaped text into markdown links); (d) if authentication starts
 failing unexpectedly after several attempts, check for a lockout via
 `DESCRIBE USER` before assuming the credentials themselves are wrong.
+
+## 2026-10-14 — Project spec revised against the READY framework and finalized
+
+**Decision:** `docs/PROJECT_SPEC.md` is replaced by a revised version (changes C1–C23 listed in its §0). `docs/kpi_dependency_table.md` is replaced by a re-audited version.
+
+**Reason:** A review against Christine Jiang's READY portfolio framework found the plan strong on Representative data and Data best practices but missing Exec-driven questions and Insights/impact. A Mac (Apple silicon) compatibility review and a read-only repo audit found further gaps. The individual decisions are logged below.
+
+**Alternatives considered:** Keeping the revision as a separate `UPDATED_PROJECT_SPEC.md` — rejected, because two specs would break the single-source-of-truth rule. The previous version stays in git history.
+
+**Consequences:** Step numbers changed. The spec's §7 "Old #" column maps new steps to the original numbering used in earlier entries of this log.
+
+## 2026-10-14 — Primary stakeholder: VP of Regulatory Strategy (C1)
+
+**Decision:** The project is framed for a VP of Regulatory Strategy at a mid-size medtech company deciding where and how to bring its next AI-enabled device to market. Four executive questions (Q1–Q4, spec §1.1) drive all analysis; every dashboard sheet and SQL analysis names the question it serves.
+
+**Reason:** READY's "E" requires specific, decision-relevant stakeholder questions; the existing 10 KPIs were metrics without an owner or a decision.
+
+**Alternatives considered:** Hospital procurement lead (kept as secondary audience); investor (rejected — would shift focus away from regulatory pathways).
+
+**Consequences:** KPIs that serve no question get cut or moved to an appendix sheet.
+
+## 2026-10-14 — Analysis-first roadmap (C7)
+
+**Decision:** Build a thin end-to-end slice for Q1a (authorization growth by panel and pathway) — load, dbt model, SQL, export, Tableau sheet, written insight — before MDM, Airflow, and the remaining facts.
+
+**Reason:** Near-term target is data analyst roles; the portfolio helps most when a question-to-insight loop is showable early. Answering a real question also surfaces data problems while they are cheap to fix.
+
+**Alternatives considered:** Original infrastructure-first order (rejected — first showable insight would come only near the end).
+
+**Consequences:** The pipeline runs manually (scripts) until Step 25; those scripts later become Airflow tasks, so little is thrown away.
+
+## 2026-10-14 — Airflow hosted on Azure, developed locally (C10 proposal rejected)
+
+**Decision:** Airflow is hosted on a self-managed Azure Linux VM running the same `docker compose` setup used for local development on the Mac.
+
+**Reason:** Keeps the original requirement of a real Azure-hosted orchestration story. A proposal to run Airflow only locally was considered and declined.
+
+**Alternatives considered:** ADF-managed Airflow (not possible — deprecated and closed to new customers); local-only Airflow (rejected by choice); Azure Data Factory pipelines (rejected — less portable skill).
+
+**Consequences:** Free-tier VM sizes are too small for Airflow, so a paid size is needed; size and price are chosen at Step 25. Mitigations: auto-shutdown or start-only-for-runs, Azure budget alert, Airflow UI via SSH tunnel only, SSH restricted to one IP, private key stored with restricted permissions.
+
+## 2026-10-14 — Snowflake: let trials lapse and rebuild from code (C11)
+
+**Decision:** The Snowflake account is treated as disposable. Each 30-day trial is allowed to lapse and a new one is rebuilt from `snowflake/setup.sql` using `scripts/rebuild_snowflake.sh` and `docs/runbook_snowflake_rebuild.md`.
+
+**Reason:** Snowflake has no permanent free tier; all raw data already lives outside Snowflake (local + Azure Blob), so nothing is lost when a trial ends.
+
+**Alternatives considered:** Converting to a paid account (rejected — ongoing cost); switching to a free warehouse such as DuckDB (rejected — lower market signal).
+
+**Consequences:** A rebuild roughly every 30 days, with a calendar reminder. Each rebuild changes the account identifier in `~/.dbt/profiles.yml`. The first rebuild must be ready before the current trial ends (~2026-10-30). Sign up with the plain email form, not SSO (see 2026-09-30 entry).
+
+## 2026-10-14 — Snowflake service user switches to key-pair authentication (C19)
+
+**Decision:** `aimsight_dev` is recreated as `TYPE = SERVICE` with an RSA public key; dbt connects with `private_key_path`. The private key is stored outside the repo.
+
+**Reason:** Snowflake is phasing out single-factor password sign-in, enforcing it for newly created users first. Rebuilt trials create new users, so password-only authentication would likely fail. It also removes the class of password problems logged on 2026-09-30.
+
+**Alternatives considered:** Keeping password authentication (rejected — likely blocked on new users).
+
+**Consequences:** `profiles.yml` changes; the key pair must be backed up securely and never committed.
+
+## 2026-10-14 — Dashboard tool: Tableau instead of Power BI (C18, C20)
+
+**Decision:** Dashboards are built in Tableau Desktop Public Edition and published to Tableau Public. A tested export script writes Snowflake star tables to CSV for Tableau (and a small flat extract for Excel).
+
+**Reason:** Tableau runs natively on the Mac and publishes publicly for free. Power BI Desktop is Windows-only (would need an unsupported VM), and public publishing needs a work/school account with an admin-enabled setting.
+
+**Alternatives considered:** Power BI via a Windows 11 ARM VM (rejected); Looker, Streamlit (rejected — redundant or lower market signal).
+
+**Consequences:** The free Public Edition cannot connect to Snowflake, so it reads exported files — no scheduled refresh from Snowflake. Benefit: the public dashboard keeps working while a Snowflake trial is down. Power BI skills, if needed for target postings, are built separately.
+
+## 2026-10-14 — Data-modeling depth (C22)
+
+**Decision:** Add `bridge_recall_submission` (many-to-many between recalls and 510(k) submissions via `k_numbers`), a role-playing `dim_date`, separate CSV exports per star table related in Tableau's logical layer, and an ERD in `docs/architecture.md`.
+
+**Reason:** "Data modeling" in job postings covers both warehouse modeling and BI-side relationships; these show both on real data.
+
+**Alternatives considered:** A single flat export file (rejected — hides the star schema).
+
+**Consequences:** Slightly more complex export and Tableau setup. Unmatched `k_numbers` are kept and counted, not dropped.
+
+## 2026-10-14 — Azure DevOps Boards in use from now on (C15); Kafka kept optional (C23)
+
+**Decision:** Boards is set up now (Step 12) with one work item per remaining step. Kafka stays as an optional final extension (Step 31), labeled a simulation.
+
+**Reason:** A board created after the work would be a retroactive artifact. Kafka has no natural fit for daily-at-most FDA data but helps the scale/streaming story for data-engineering roles.
+
+**Alternatives considered:** Dropping Boards; cutting Kafka entirely (both declined).
+
+**Consequences:** Kafka work starts only after the core deliverables exist.
+
+## 2026-10-14 — Repo audit corrections (C16, C21)
+
+**Decision:** Record and fix what a read-only audit found: (1) `aimsight_dbt/` was never committed and still contains dbt's example models; (2) no code, test, or log entry backs the Step 1 MD5 checksum claim; (3) recalls have no `recall_number` field (keys are `res_event_number` / `product_res_number`); (4) the adverse-event extract has no follow-up indicator field; (5) the Snowflake trial was provisioned as Enterprise, not Standard (already noted on 2026-09-30, now reflected in the spec).
+
+**Reason:** The spec's own rule is that a step is done only when tested and committed, and resume claims must be verifiable.
+
+**Alternatives considered:** None — these are corrections.
+
+**Consequences:** Step 13 deletes the example models, commits the dbt project, and either adds a tested checksum module or corrects the Step 1 claim (and the resume bullet). Step 16's extraction must include the follow-up field and both recall keys.
