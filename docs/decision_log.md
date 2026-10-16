@@ -218,3 +218,35 @@ failing unexpectedly after several attempts, check for a lockout via
 **Alternatives considered:** None — these are corrections.
 
 **Consequences:** Step 13 deletes the example models, commits the dbt project, and either adds a tested checksum module or corrects the Step 1 claim (and the resume bullet). Step 16's extraction must include the follow-up field and both recall keys.
+
+## 2026-10-16 — Step 14(b): aimsight_dev migrated to key-pair auth, TYPE = SERVICE
+
+**Decision:** `aimsight_dev` now authenticates with an RSA key pair instead of
+a password, and its `TYPE` is set to `SERVICE`. Password login for this
+user is now fully disabled.
+
+**Reason:** Required by Snowflake's ongoing password deprecation for
+service/automation accounts (C19), and removes the whole class of
+password problems logged on 2026-09-30.
+
+**How:** Generated a 2048-bit RSA key pair with `openssl` (private key
+encrypted with a passphrase, stored at `~/.snowflake/rsa_key.p8`, outside
+the repo). Registered the public key with
+`ALTER USER aimsight_dev SET RSA_PUBLIC_KEY='...'`. Confirmed via
+`DESCRIBE USER` (`RSA_PUBLIC_KEY_FP` populated). Updated `~/.dbt/profiles.yml`
+to use `private_key_path` + `private_key_passphrase` (both read from
+environment variables, same pattern as the password before it) in place of
+`password`. Verified with `dbt debug` (passed). Only then — confirmed
+Snowflake docs recommend this order, since switching `TYPE` first would
+remove the password fallback before the key was proven to work — ran
+`ALTER USER aimsight_dev SET TYPE = SERVICE;` and re-ran `dbt debug` to
+confirm it still passed with password login now closed off.
+
+**Alternatives considered:** Dropping and recreating `aimsight_dev` instead
+of altering it in place — unnecessary; Snowflake's `ALTER USER ... SET
+TYPE = SERVICE` works directly on an existing user.
+
+**Consequences:** `profiles.yml` no longer contains a password anywhere.
+This is only part (b) of Step 14 — see `PROJECT_SPEC.md` §7 for parts (a),
+(c), (d), (e), which are still outstanding and are what actually make the
+account survive the trial lapsing (~2026-10-30) without a manual redo.
