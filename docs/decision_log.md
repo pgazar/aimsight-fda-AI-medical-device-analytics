@@ -327,3 +327,34 @@ defaults to `defaultAction: Allow` (any network can attempt to connect;
 identity-based auth is still required to actually read/write data). Worth
 restricting to a specific IP range later, same spirit as the Snowflake
 least-privilege work.
+
+## 2026-10-19 — Step 12: Azure DevOps Boards set up and populated
+
+**Decision:** Azure DevOps organization `Pegahzar`, project `AIMSight`
+(Basic process template) created. Backlog populated with one work item
+per remaining roadmap step (Steps 11–32, 22 items total).
+
+**Reason:** Per C15, the board had to be created and start reflecting
+real usage now, not retroactively assembled near the end of the project —
+otherwise it would be an artifact, not evidence of actual tracking.
+
+**How:** Signed in to dev.azure.com with the same personal account
+(`p.zargareian@gmail.com`) used for the Azure fix in the Step 11 entry
+above, keeping all project identity under one account. Chose the Basic
+process template (To Do / Doing / Done) over Agile/Scrum/CMMI, since those
+are built for multi-person teams with sprints — unnecessary complexity for
+a solo project. Added all 22 items via the Backlog view's quick-add (type
+a title, press Enter, repeat). Immediately moved Steps 11 and 18 to Done
+(both already genuinely complete) and this step (12) to Doing while it was
+being finished, so the board matches reality from its very first day
+instead of starting as 22 blank cards.
+
+**Alternatives considered:** Agile or Scrum process templates — rejected,
+sprint planning and story points add no value for one person working
+sequentially through a fixed roadmap.
+
+**Consequences:** Going forward, each step's board card should move
+To Do → Doing → Done as work actually happens, in the same turn its
+status changes in `PROJECT_SPEC.md` §7 — the two should never drift out of
+sync. Step 12's own card should be dragged to Done now that this entry is
+written.
