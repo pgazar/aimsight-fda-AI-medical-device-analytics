@@ -358,3 +358,47 @@ To Do → Doing → Done as work actually happens, in the same turn its
 status changes in `PROJECT_SPEC.md` §7 — the two should never drift out of
 sync. Step 12's own card should be dragged to Done now that this entry is
 written.
+
+## 2026-10-19 — Step 13: dbt project cleaned up and committed; checksum claim corrected with real code
+
+**Decision:** Part (a): `aimsight_dbt/models/example/` (dbt's three
+scaffolded example files) deleted, along with the now-empty `models:`
+block it left behind in `dbt_project.yml`; `aimsight_dbt/` committed to
+git for the first time. Part (b): `src/aimsight/ingest/checksum.py`
+(`compute_md5()`, `verify_checksum()`, `ChecksumMismatchError`) written
+with 8 passing tests in `tests/unit/test_checksum.py`.
+
+**Reason:** Per C21, a 2026-10-14 audit found `aimsight_dbt/` untracked
+with leftover scaffolding, and no code backing the Step 1 MD5-checksum
+claim. The project's own rule is "done = tested + committed" — neither
+was true until now.
+
+**How:** Deleting the example models left `dbt_project.yml`'s `models:`
+block empty; running `dbt parse` afterward surfaced two warnings pointing
+at exactly that (`CustomKeyInConfigDeprecation` and an "unused
+configuration paths" notice) — removed the whole block rather than leave
+a warning sitting in the project, re-ran `dbt parse` clean, then
+committed. For the checksum module, matched the existing house style
+exactly: a custom exception (`ChecksumMismatchError`, same pattern as
+`MissingExpectedColumnsError`), chunked file reads (constant memory
+regardless of file size — matters once Step 16 pulls much larger bulk
+files), case-insensitive comparison, and `tmp_path`-based synthetic tests
+matching `test_clean_ai_devices.py`'s convention rather than a committed
+fixture file.
+
+**Alternatives considered:** For part (b), the spec offered a second path
+— simply correct the claim's wording instead of building real code.
+Rejected: the cost of building it was low (about 20 minutes) and
+checkums are explicitly named as Pipeline-layer interview evidence in
+Appendix A, so correcting the claim instead would have thrown away cheap,
+legitimate evidence.
+
+**Consequences:** The checksum module is tested and real, but **not yet
+called** anywhere in the live ingest flow — `load_raw_ai_devices()` does
+not invoke it. Wiring it in needs a recorded "expected checksum" per real
+file, captured at download time, which doesn't exist for the files
+currently in `data/raw/`. That wiring is Step 16's job (full source
+extraction, where files are freshly downloaded and a real expected
+checksum can be captured then) — already where Appendix A lists checksums,
+not Step 1. `PROJECT_SPEC.md` §6's Step 1 row is corrected to reflect
+this honestly rather than mark it fully resolved.
