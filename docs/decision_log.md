@@ -278,3 +278,52 @@ surface then, under real time pressure, rather than now — worth
 re-reading both files once more before the trial actually lapses, as a
 cheap hedge against that risk. Part (e), the Azure budget alert, is the
 only fully untouched piece of Step 14 remaining.
+
+## 2026-10-19 — Step 11: Azure Blob Storage landing zone built
+
+**Decision:** Azure resources for this project now exist: resource group
+`Aimsight`, storage account `aimsightstorage1692` (West US 2, minimum TLS
+1.2), and a private blob container `raw-data`. The Azure CLI is installed
+locally (Homebrew) and `az login` is verified against the correct personal
+subscription.
+
+**Reason:** This is the landing zone the rest of the pipeline (Airflow,
+later) will read from — a second, cloud-reachable copy of the raw FDA
+data, since cloud services can't reach into a personal laptop directly.
+
+**How, including one real detour:** The Azure free account was first
+signed up using a **school email address**. This silently placed the
+account inside the school's own Azure Active Directory tenant ("SPS Shared
+Service"), where Pegah only had limited (non-owner) permissions — blocking
+resource-group creation entirely. Confirmed via **Switch directory** in
+the portal, which showed only the school's tenant, no personal one
+alongside it. Fixed the same way as the earlier Snowflake AWS-vs-Azure
+mixup: signed out completely and redid the signup with a personal email
+(`p.zargareian@gmail.com`), landing in a clean, fully-owned "Default
+Directory" tenant instead.
+
+From there: created resource group `Aimsight`, then a storage account
+within it (first attempt used an invalid name containing an underscore —
+Azure storage account names allow only lowercase letters and digits;
+settled on `aimsightstorage1692`), then a private container `raw-data`
+inside it. Installed `azure-cli` via Homebrew, ran `az login` (confirmed
+only the personal subscription/tenant was offered — no sign of the school
+tenant), and used `az group list`, `az storage account list`, and
+`az storage container list --auth-mode login` to confirm the CLI identity
+sees the exact same resources created in the browser. Tightened
+`--min-tls-version` to `TLS1_2` (it defaulted to the older `TLS1_0`).
+
+**Alternatives considered:** Trying to detach the Azure account from the
+school's tenant after the fact — rejected; Microsoft's own documentation
+and multiple forum reports show this is often difficult or impossible
+without IT-admin help, whereas a clean restart with a personal email took
+minutes.
+
+**Consequences:** All Azure work for this project now happens under the
+personal subscription tied to `p.zargareian@gmail.com` — not the school
+email used for the first, abandoned attempt. One hardening item flagged
+but not yet applied: the storage account's network rule set still
+defaults to `defaultAction: Allow` (any network can attempt to connect;
+identity-based auth is still required to actually read/write data). Worth
+restricting to a specific IP range later, same spirit as the Snowflake
+least-privilege work.
