@@ -250,3 +250,31 @@ TYPE = SERVICE` works directly on an existing user.
 This is only part (b) of Step 14 — see `PROJECT_SPEC.md` §7 for parts (a),
 (c), (d), (e), which are still outstanding and are what actually make the
 account survive the trial lapsing (~2026-10-30) without a manual redo.
+
+## 2026-10-16 — Step 14(a)+(c) done; (d) deferred by choice
+
+**Decision:** `snowflake/setup.sql` (warehouse, database, schema, role,
+and `aimsight_dev` created directly as `TYPE = SERVICE` with its key
+attached — no password step at all this time), `scripts/rebuild_snowflake.sh`
+(updates `~/.dbt/profiles.yml`'s account line via `sed -i ''`, then re-runs
+`dbt debug`), and `docs/runbook_snowflake_rebuild.md` (the human steps that
+can't be scripted: signup, cloud/region choice, running `setup.sql`,
+finding the account identifier) are all written. Part (d) — actually
+running this whole process against a brand-new trial to prove it works —
+is deliberately **deferred**, not forgotten.
+
+**Reason:** Testing the rebuild now would mean signing up for a genuinely
+redundant second trial while the current one still has runway, purely to
+exercise a process that isn't needed yet. Deferring it to the actual
+rebuild (~2026-10-30) means it gets tested exactly when it's needed, with
+no wasted signup.
+
+**Alternatives considered:** Testing immediately — rejected by Pegah as
+unnecessary cost (another email/signup) for no immediate benefit.
+
+**Consequences:** Step 14(d) remains open until the current trial is
+actually rebuilt. If the rebuild script or runbook has a bug, it will
+surface then, under real time pressure, rather than now — worth
+re-reading both files once more before the trial actually lapses, as a
+cheap hedge against that risk. Part (e), the Azure budget alert, is the
+only fully untouched piece of Step 14 remaining.
