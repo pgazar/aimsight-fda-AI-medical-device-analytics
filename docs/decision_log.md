@@ -402,3 +402,34 @@ extraction, where files are freshly downloaded and a real expected
 checksum can be captured then) — already where Appendix A lists checksums,
 not Step 1. `PROJECT_SPEC.md` §6's Step 1 row is corrected to reflect
 this honestly rather than mark it fully resolved.
+
+## 2026-10-19 — Step 14(e): Azure budget alert created
+
+**Decision:** A monthly budget (`aimsight-monthly-budget`, $20, scoped to
+the subscription) with two actual-spend alert thresholds (80%, 100%),
+emailing `p.zargareian@gmail.com`, is created and confirmed visible in
+the Cost Management Budgets list.
+
+**Reason:** Per C12, a cost guardrail was needed before Step 25 (the paid
+Airflow VM) introduces real ongoing spend. $20/month is comfortably above
+the current near-zero storage cost, but low enough to catch a problem
+(e.g. an accidentally-left-running VM) early rather than at month's end.
+
+**How:** Scope selection briefly showed only a billing-account-level
+entry ("Pegah Zar") rather than the subscription directly — expected for
+an individual account, where the billing account and the one subscription
+cover the same resources; used it as-is rather than hunting for a
+separate subscription-level entry. The Alert recipients field required
+pressing Enter after typing the email to commit it as a tag — typing
+alone left the field reading as empty, which is why "Unique email address
+is required" appeared even though text had been entered.
+
+**Alternatives considered:** A single 100%-only threshold — rejected in
+favor of two thresholds (80% and 100%), since a single alert only fires
+once and a second, later threshold catches ongoing drift the first one
+missed.
+
+**Consequences:** With this, **Step 14 is complete except for part (d)**,
+which remains intentionally deferred to the actual rebuild (~2026-10-30)
+per the 2026-10-16 entry above. Remember this alert is a notification
+only — it does not pause or stop any resource automatically.
